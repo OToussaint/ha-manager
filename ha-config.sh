@@ -61,19 +61,17 @@ handle_backup() {
     # Extract selected file to destination
     if [ "$1" == "1" ]; then
         DIR="${VENV_DIR}"
-        cd "$DIR" && find . -name "*" -type f > /tmp/venv.lst
         NAME="venv"
 
     elif [ "$1" == "2" ]; then
         DIR="${CONFIG_DIR}"
-        cd "$DIR" && find . -name "*" -type f | grep -v -E "backups\/(.)+.tar$" > /tmp/haconf.lst
         NAME="configuration"
     fi
 
     if [ "$1" == "1" ]; then
-        cmd="cd \"${DIR}\" && sudo tar --ignore-failed-read -zvcf \"${DEST_DIR}/${VERSION}-${NAME}-$(date +%F).tar.gz\" -T /tmp/venv.lst"
+        cmd="cd \"$DIR\" && find . -name \"*\" -type f -print0 | sudo tar --ignore-failed-read -zvcf \"${DEST_DIR}/${VERSION}-${NAME}-$(date +%F).tar.gz\" --null -T -"
     elif [ "$1" == "2" ]; then
-        cmd="cd \"$DIR\" && sudo tar --ignore-failed-read -zvcf \"${DEST_DIR}/${VERSION}-${NAME}-$(date +%F).tar.gz\" -T /tmp/haconf.lst"
+        cmd="cd \"$DIR\" && find . -name \"*\" -type f -print0 | grep -vz -E \"backups\/(.)+.tar$\" | sudo tar --ignore-failed-read -zvcf \"${DEST_DIR}/${VERSION}-${NAME}-$(date +%F).tar.gz\" --null -T -"
     fi
     eval $cmd
 
