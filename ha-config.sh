@@ -5,6 +5,7 @@ VENV_DIR="/srv/homeassistant"
 CONFIG_DIR="/home/homeassistant/.homeassistant"
 BACKUP_ROOT_DIR="/mnt/backup/Home Assistant"
 LOG_DIR="/var/log/homeassistant"
+HA_USER="homeassistant"
 
 # Function to pause display
 pause(){
@@ -55,7 +56,7 @@ handle_backup() {
     fi
 
     # Get current version of HA
-    VERSION=$(sudo -u homeassistant -H -s /bin/bash -c "source ${VENV_DIR}/bin/activate && hass --version")
+    VERSION=$(sudo -u ${HA_USER} -H -s /bin/bash -c "source ${VENV_DIR}/bin/activate && hass --version")
 
     # Extract selected file to destination
     if [ "$1" == "1" ]; then
@@ -141,12 +142,12 @@ handle_upgrade() {
     if [ "$1" == "1" ]; then
         # Upgrade to Release channel
         echo "Upgrading to 'stable' channel..."
-        sudo -u homeassistant -H -s /bin/bash -c "cd ${VENV_DIR} && source bin/activate && pip3 install -IU homeassistant" | 
+        sudo -u ${HA_USER} -H -s /bin/bash -c "cd ${VENV_DIR} && source bin/activate && pip3 install -IU homeassistant" | 
         tee -a "${LOG_DIR}/homeassistant-manager.log"
     elif [ "$1" == "2" ]; then
         # Upgrade to Beta channel
         echo "Upgrading to 'beta' channel..."
-        sudo -u homeassistant -H -s /bin/bash -c "cd ${VENV_DIR} && source bin/activate && pip3 install --pre -U homeassistant" | 
+        sudo -u ${HA_USER} -H -s /bin/bash -c "cd ${VENV_DIR} && source bin/activate && pip3 install --pre -u ${HA_USER}" | 
         tee -a "${LOG_DIR}/homeassistant-manager.log"
     fi
     pause
@@ -157,15 +158,15 @@ handle_service() {
     if [ "$1" == "5" ]; then
         # Start Home Assistant
         echo "Starting Home Assistant..."
-        sudo systemctl start home-assistant@homeassistant.service | tee -a "${LOG_DIR}/homeassistant-manager.log"
+        sudo systemctl start home-assistant@${HA_USER}.service | tee -a "${LOG_DIR}/homeassistant-manager.log"
     elif [ "$1" == "6" ]; then
         # Stop Home Assistant
         echo "Stopping Home Assistant..."
-        sudo systemctl stop home-assistant@homeassistant.service | tee -a "${LOG_DIR}/homeassistant-manager.log"
+        sudo systemctl stop home-assistant@${HA_USER}.service | tee -a "${LOG_DIR}/homeassistant-manager.log"
     elif [ "$1" == "7" ]; then
         # Restart Home Assistant
         echo "Restarting Home Assistant..."
-        sudo systemctl restart home-assistant@homeassistant.service | tee -a "${LOG_DIR}/homeassistant-manager.log"
+        sudo systemctl restart home-assistant@${HA_USER}.service | tee -a "${LOG_DIR}/homeassistant-manager.log"
     fi
 }
 
@@ -174,11 +175,11 @@ handle_check() {
     if [ "$1" == "3" ]; then
         # Check Logs
         echo "Checking logs..."
-        sudo journalctl -f -u home-assistant@homeassistant.service | less
+        sudo journalctl -f -u home-assistant@${HA_USER}.service | less
     elif [ "$1" == "4" ]; then
         # Check Configuration
         echo "Checking configuration..."
-        sudo -u homeassistant -H -s /bin/bash -c "source ${VENV_DIR}/bin/activate && hass --script check_config" | 
+        sudo -u ${HA_USER} -H -s /bin/bash -c "source ${VENV_DIR}/bin/activate && hass --script check_config" | 
         tee -a "${LOG_DIR}/homeassistant-manager.log"
         pause
     fi
