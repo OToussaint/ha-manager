@@ -17,6 +17,7 @@ VENV_DIR="/srv/homeassistant"
 CONFIG_DIR="/home/homeassistant/.homeassistant"
 BACKUP_ROOT_DIR="/mnt/backup/Home Assistant"
 LOG_DIR="/var/log/homeassistant"
+HA_USER="homeassistant"
 ```
 
 Then run the script:
