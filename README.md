@@ -1,5 +1,6 @@
 # ha-config
-A shell utility script to easily manage your Home Assistant installation in Python venv
+A shell utility script to easily manage your Home Assistant installation in Python venv.  
+This script is using whiptail.
 # How to use it:
 Add exec permissions to the script in order to use it with:
 ```
