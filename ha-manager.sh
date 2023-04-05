@@ -140,7 +140,8 @@ handle_upgrade() {
     if [ "$1" == "1" ]; then
         # Upgrade to Release channel
         echo "Upgrading to 'stable' channel..."
-        sudo -u ${HA_USER} -H -s /bin/bash -c "cd ${VENV_DIR} && source bin/activate && pip3 install -IU homeassistant" | 
+        VERSION=$(curl -s https://api.github.com/repos/home-assistant/core/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')
+        sudo -u ${HA_USER} -H -s /bin/bash -c "cd ${VENV_DIR} && source bin/activate && pip3 install -U homeassistant==${VERSION}" | 
         tee -a "${LOG_DIR}/homeassistant-manager.log"
     elif [ "$1" == "2" ]; then
         # Upgrade to Beta channel
