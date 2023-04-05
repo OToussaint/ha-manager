@@ -23,7 +23,7 @@ get_files() {
     done < <( ls -1 "$1" )
     FILE_CHOICE=$(whiptail --title "List file of directory" --menu "Chose one" 24 80 17 "${W[@]}" 3>&2 2>&1 1>&3) # show dialog and store output
     if [ $? -eq 0 ]; then # Exit with OK
-        FILE=$(ls -1 "$1" | sed -n "`echo "$FILE_CHOICE p" | sed 's/ //'`")
+        FILE=$(ls -1 "$1" | sed -n "$(echo "$FILE_CHOICE p" | sed 's/ //')")
     fi
 }
 
@@ -73,7 +73,7 @@ handle_backup() {
     elif [ "$1" == "2" ]; then
         cmd="cd \"$DIR\" && find . -name \"*\" -type f -print0 | grep -vz -E \"backups\/(.)+.tar$\" | sudo tar --ignore-failed-read -zvcf \"${DEST_DIR}/${VERSION}-${NAME}-$(date +%F).tar.gz\" --null -T -"
     fi
-    eval $cmd
+    eval "$cmd"
 
     # Display success message
     whiptail --title "Backup" --msgbox "File created successfully!" 10 80
