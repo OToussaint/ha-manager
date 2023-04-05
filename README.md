@@ -1,4 +1,4 @@
-# ha-manager
+# ha-manager [![Codacy Badge](https://app.codacy.com/project/badge/Grade/304c18daae7f4429bbcc9d97b6f624cb)](https://app.codacy.com/gh/OToussaint/ha-manager/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 A shell utility script to easily manage your Home Assistant installation in Python venv.  
 This script is using whiptail.
 # How to use it:
