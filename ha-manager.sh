@@ -124,15 +124,17 @@ handle_restore() {
 
 # Function to display the main menu
 show_main_menu() {
+    STABLE=$(curl -s "https://pypi.org/pypi/homeassistant/json" | jq -r '.info.version')
+    BETA=$(curl -s "https://api.github.com/repos/home-assistant/core/releases" | jq -r '.[] | select(.prerelease == true) | .tag_name' | head -n 1)
     whiptail --clear --title "Home Assistant Manager" --menu "Select an option:" 15 60 8 \
-    "1" "Upgrade to 'stable' channel" \
-    "2" "Upgrade to 'beta' channel" \
+    "1" "Upgrade to 'stable' channel (${STABLE})" \
+    "2" "Upgrade to 'beta' channel (${BETA})" \
     "3" "Check logs" \
     "4" "Check configuration" \
     "5" "Start Home Assistant" \
     "6" "Stop Home Assistant" \
     "7" "Restart Home Assistant" \
-    "8" "Backup configuration" 2>&1 > /dev/tty | tee -a "${LOG_DIR}/homeassistant-manager.log"
+    "8" "Backup/Restore configuration" 2>&1 > /dev/tty | tee -a "${LOG_DIR}/homeassistant-manager.log"
 }
 
 # Function to handle upgrades
