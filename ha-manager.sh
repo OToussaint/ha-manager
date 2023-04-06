@@ -40,18 +40,12 @@ show_backup_menu() {
 handle_backup() {
 
     # Prompt the directory 
-    if [ "$1" == "1" ]; then
-        # Prompt user for extraction location (venv)
-        DEST_DIR=$(whiptail --title "Backup venv" --inputbox "Enter backup location:" 10 80 "${BACKUP_ROOT_DIR}/venv" 3>&1 1>&2 2>&3)
-    elif [ "$1" == "2" ]; then
-        # Prompt user for extraction location (configuration)
-        DEST_DIR=$(whiptail --title "Backup configuration" --inputbox "Enter backup location:" 10 80 "${BACKUP_ROOT_DIR}/configuration" 3>&1 1>&2 2>&3)
-    fi
+    TITLE=$([ "$1" == 1 ] && echo "venv" || echo "configuration")
+    DEST_DIR=$(whiptail --title "Backup ${TITLE}" --inputbox "Enter backup location:" 10 80 "${BACKUP_ROOT_DIR}/${TITLE}" 3>&1 1>&2 2>&3)
 
     # Check if user canceled or if no destination was entered
     if [ $? -ne 0 ] || [ -z "$DEST_DIR" ]; then
-        echo "No destination. Operation canceled."
-        pause
+        echo "No destination. Operation canceled." | tee -a "${LOG_DIR}/homeassistant-manager.log"
         return
     fi
 
@@ -68,11 +62,13 @@ handle_backup() {
         NAME="configuration"
     fi
 
-    if [ "$1" == "1" ]; then
-        cmd="cd \"$DIR\" && find . -name \"*\" -type f -print0 | sudo tar --ignore-failed-read -zvcf \"${DEST_DIR}/${VERSION}-${NAME}-$(date +%F).tar.gz\" --null -T -"
-    elif [ "$1" == "2" ]; then
-        cmd="cd \"$DIR\" && find . -name \"*\" -type f -print0 | grep -vz -E \"backups\/(.)+.tar$\" | sudo tar --ignore-failed-read -zvcf \"${DEST_DIR}/${VERSION}-${NAME}-$(date +%F).tar.gz\" --null -T -"
+    # Build command
+    cmd="cd \"$DIR\" && find . -name \"*\" -type f -print0 | "
+
+    if [ "$1" == "2" ]; then
+        cmd+=" grep -vz -E \"backups\/(.)+.tar$\" | " 
     fi
+    cmd+=" sudo tar --ignore-failed-read -zvcf \"${DEST_DIR}/${VERSION}-${NAME}-$(date +%F).tar.gz\" --null -T -"
     eval "$cmd"
 
     # Display success message
@@ -83,40 +79,30 @@ handle_backup() {
 # function to handle restores
 handle_restore() {
 
-    if [ "$1" == "3" ]; then
-        DIR="${BACKUP_ROOT_DIR}/venv"
-    elif [ "$1" == "4" ]; then
-        DIR="${BACKUP_ROOT_DIR}/configuration"
-    fi
+    TITLE=$([ "$1" == 3 ] && echo "venv" || echo "configuration")
   
     # Get list of available files
-    get_files "$DIR"
+    get_files "${BACKUP_ROOT_DIR}/${TITLE}"
 
     # Check if user canceled or if no file was selected
     if [ $? -ne 0 ] || [ -z "$FILE" ]; then
-        echo "No file selected. Operation canceled."
-        pause
+        echo "No file selected. Operation canceled." | tee -a "${LOG_DIR}/homeassistant-manager.log"
         return
     fi
    
     # Prompt the directory 
-    if [ "$1" == "3" ]; then
-        # Prompt user for extraction location (venv)
-        DEST_DIR=$(whiptail --title "Extract Tar File" --inputbox "Enter extraction location:" 10 80 "${VENV_DIR}" 3>&1 1>&2 2>&3)
-    elif [ "$1" == "4" ]; then
-        # Prompt user for extraction location (configuration)
-        DEST_DIR=$(whiptail --title "Extract Tar File" --inputbox "Enter extraction location:" 10 80 "${CONFIG_DIR}" 3>&1 1>&2 2>&3)
-    fi
+    TITLE=$([ "$1" == 3 ] && echo "venv" || echo "configuration")
+    DEST_DIR=$(whiptail --title "Extract ${TITLE} Backup File" --inputbox "Enter extraction location:" 10 80 \"${BACKUP_ROOT_DIR}/${TITLE}\" 3>&1 1>&2 2>&3)
 
     # Check if user canceled or if no destination was entered
     if [ $? -ne 0 ] || [ -z "$DEST_DIR" ]; then
-        echo "No destination. Operation canceled."
-        pause
+        echo "No destination. Operation canceled." | tee -a "${LOG_DIR}/homeassistant-manager.log"
         return
     fi
     
     # Extract selected file to destination
-    echo tar -xvfz "${DIR}/${FILE}" -C "$DEST_DIR"
+    cmd="tar -xvfz \"${DIR}/${FILE}\" -C \"${DEST_DIR}\""
+    eval "$cmd"
     
     # Display success message
     whiptail --title "Restore backup" --msgbox "File extracted successfully!" 10 80
