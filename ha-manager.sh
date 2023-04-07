@@ -150,7 +150,7 @@ handle_restore() {
    
     # Prompt the directory 
     TITLE=$([ "$1" == 3 ] && echo "venv" || echo "configuration")
-    DEST_DIR=$(whiptail --title "Extract ${TITLE} Backup File" --inputbox "Enter extraction location:" 10 80 \"${BACKUP_ROOT_DIR}/${TITLE}\" 3>&1 1>&2 2>&3)
+    DEST_DIR=$(whiptail --title "Extract ${TITLE} Backup File" --inputbox "Enter extraction location:" 10 80 "${BACKUP_ROOT_DIR}/${TITLE}" 3>&1 1>&2 2>&3)
 
     # Check if user canceled or if no destination was entered
     if [ $? -ne 0 ] || [ -z "$DEST_DIR" ]; then
