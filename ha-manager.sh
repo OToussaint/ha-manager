@@ -103,7 +103,7 @@ handle_backup() {
 
     # Check if user canceled or if no destination was entered
     if [ $? -ne 0 ] || [ -z "$DEST_DIR" ]; then
-        echo "No destination. Operation canceled." | tee -a "${LOG_DIR}/homeassistant-manager.log"
+        echo "Info: No destination. Operation canceled." | tee -a "${LOG_DIR}/homeassistant-manager.log"
         return
     fi
 
@@ -154,7 +154,7 @@ handle_restore() {
 
     # Check if user canceled or if no destination was entered
     if [ $? -ne 0 ] || [ -z "$DEST_DIR" ]; then
-        echo "No destination. Operation canceled." | tee -a "${LOG_DIR}/homeassistant-manager.log"
+        echo "Info: No destination. Operation canceled." | tee -a "${LOG_DIR}/homeassistant-manager.log"
         return
     fi
     
@@ -185,32 +185,40 @@ show_main_menu() {
 handle_upgrade() {
     if [ "$1" == "1" ]; then
         # Upgrade to Release channel
-        echo "Upgrading to 'stable' channel..."
+        echo "Info: Upgrading to 'stable' channel..."
         VERSION=$(curl -s https://api.github.com/repos/home-assistant/core/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')
         sudo -u ${HA_USER} -H -s /bin/bash -c "cd ${VENV_DIR} && source bin/activate && pip3 install -U homeassistant==${VERSION}" | 
         tee -a "${LOG_DIR}/homeassistant-manager.log"
+        # Show release note
+        tempfile=$(mktemp)
+        curl -s https://api.github.com/repos/home-assistant/core/releases/latest | jq -r '.body' | grep -E "^-" | while read line; do  echo "$line" | dos2unix | sed 's/([^)]*)//g' >> $tempfile; done
+        whiptail --title "Latest 'stable' Release Notes" --textbox "${tempfile}" 30 100 
+        rm -f $tempfile
     elif [ "$1" == "2" ]; then
         # Upgrade to Beta channel
-        echo "Upgrading to 'beta' channel..."
+        echo "Info: Upgrading to 'beta' channel..."
         sudo -u ${HA_USER} -H -s /bin/bash -c "cd ${VENV_DIR} && source bin/activate && pip3 install --pre -u ${HA_USER}" | 
         tee -a "${LOG_DIR}/homeassistant-manager.log"
+        tempfile=$(mktemp)
+        curl -s https://api.github.com/repos/home-assistant/core/releases | jq -r '.[] | select(.prerelease == true) | .body' | sed '/^$/q' | grep -E "^-" | while read line; do  echo "$line" | dos2unix | sed 's/([^)]*)//g' >> $tempfile; done
+        whiptail --title "Latest 'beta' Release Notes" --textbox "${tempfile}" 30 100 
+        rm -f $tempfile
     fi
-    pause
 }
 
 # Function to handle start, stop, and restart
 handle_service() {
     if [ "$1" == "5" ]; then
         # Start Home Assistant
-        echo "Starting Home Assistant..."
+        echo "Info: Starting Home Assistant..."
         sudo systemctl start home-assistant@${HA_USER}.service | tee -a "${LOG_DIR}/homeassistant-manager.log"
     elif [ "$1" == "6" ]; then
         # Stop Home Assistant
-        echo "Stopping Home Assistant..."
+        echo "Info: Stopping Home Assistant..."
         sudo systemctl stop home-assistant@${HA_USER}.service | tee -a "${LOG_DIR}/homeassistant-manager.log"
     elif [ "$1" == "7" ]; then
         # Restart Home Assistant
-        echo "Restarting Home Assistant..."
+        echo "Info: Restarting Home Assistant..."
         sudo systemctl restart home-assistant@${HA_USER}.service | tee -a "${LOG_DIR}/homeassistant-manager.log"
     fi
 }
@@ -219,11 +227,11 @@ handle_service() {
 handle_check() {
     if [ "$1" == "3" ]; then
         # Check Logs
-        echo "Checking logs...press ^C when done"
+        echo "Info: Checking logs...press ^C when done"
         sudo journalctl -f -u home-assistant@${HA_USER}.service
     elif [ "$1" == "4" ]; then
         # Check Configuration
-        echo "Checking configuration..."
+        echo "Info: Checking configuration..."
         sudo -u ${HA_USER} -H -s /bin/bash -c "source ${VENV_DIR}/bin/activate && hass --script check_config" | 
         tee -a "${LOG_DIR}/homeassistant-manager.log"
         pause
@@ -248,7 +256,7 @@ while true; do
             if [ $BR -eq 0 ]
             then
                 # Display error message
-                whiptail --title "Backup/Restore" --msgbox "No sudo to 'root'. access !" 10 80
+                whiptail --title "Backup/Restore" --msgbox "Backup/Restore is unavailable, check the log file for more information" 10 80
             else
                 sub_choice=$(show_backup_menu)
     
