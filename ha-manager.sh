@@ -7,6 +7,64 @@ BACKUP_ROOT_DIR="/mnt/backup/Home Assistant"
 LOG_DIR="/var/log/homeassistant"
 HA_USER="homeassistant"
 
+# Test environment
+directories=("${VENV_DIR}" "${CONFIG_DIR}")
+for dir in "${directories[@]}"; do
+    if ! test -d "${dir}"; then
+        echo "Error: Directory ${dir} does not exist. Aborting"
+        exit 1
+    fi
+done
+
+# Test write access to the directory
+if ! test -w "${LOG_DIR}"; then
+    echo "Error: You do not have write access to ${LOG_DIR}. Aborting"
+    exit 1
+fi
+
+# Check if required tools are installed
+if ! which tee >/dev/null; then
+  echo "Error: tee is required but not installed. Aborting."
+  exit 1
+fi
+
+required_commands=(sudo whiptail curl jq sed)
+
+for cmd in "${required_commands[@]}"; do
+  if ! command -v "${cmd}" >/dev/null; then
+    echo "Error: ${cmd} is required but not installed. Aborting." | tee -a "${LOG_DIR}/homeassistant-manager.log"
+    exit 1
+  fi
+done
+
+# Full test of backup/restore capabilities
+if which tar >/dev/null; then
+    # Check if sudo to root user is possible
+    if sudo -s tar --help >/dev/null 2>&1; then
+        # Test write access to the directory
+        if test -w "${BACKUP_ROOT_DIR}"; then
+            BR=1
+        else
+            echo "Warning: You do not have write access to ${BACKUP_ROOT_DIR}. Backup/Restore will be disabled." | tee -a "${LOG_DIR}/homeassistant-manager.log"
+            BR=0
+        fi
+    else
+      echo "Warning: sudo to root failed. Backup/Restore will be disabled." | tee -a "${LOG_DIR}/homeassistant-manager.log"
+      BR=0
+    fi
+else
+  echo "Warning: tar is required but not installed. Backup/Restore will be disabled." | tee -a "${LOG_DIR}/homeassistant-manager.log"
+  BR=0
+fi
+
+# Check if sudo to HA user is possible
+if sudo -u ${HA_USER} -H -s ls >/dev/null 2>&1; then
+  echo -n ""
+else
+  echo "Error: sudo to ${HA_USER} failed but it is required. Aborting." | tee -a "${LOG_DIR}/homeassistant-manager.log"
+  exit 1
+fi
+
 # Function to pause display
 pause(){
  read -s -n 1 -p "Press any key to continue . . ."
@@ -92,7 +150,7 @@ handle_restore() {
    
     # Prompt the directory 
     TITLE=$([ "$1" == 3 ] && echo "venv" || echo "configuration")
-    DEST_DIR=$(whiptail --title "Extract ${TITLE} Backup File" --inputbox "Enter extraction location:" 10 80 \""${BACKUP_ROOT_DIR}/${TITLE}"\" 3>&1 1>&2 2>&3)
+    DEST_DIR=$(whiptail --title "Extract ${TITLE} Backup File" --inputbox "Enter extraction location:" 10 80 \"${BACKUP_ROOT_DIR}/${TITLE}\" 3>&1 1>&2 2>&3)
 
     # Check if user canceled or if no destination was entered
     if [ $? -ne 0 ] || [ -z "$DEST_DIR" ]; then
@@ -161,8 +219,8 @@ handle_service() {
 handle_check() {
     if [ "$1" == "3" ]; then
         # Check Logs
-        echo "Checking logs..."
-        sudo journalctl -f -u home-assistant@${HA_USER}.service | less
+        echo "Checking logs...press ^C when done"
+        sudo journalctl -f -u home-assistant@${HA_USER}.service
     elif [ "$1" == "4" ]; then
         # Check Configuration
         echo "Checking configuration..."
@@ -171,10 +229,6 @@ handle_check() {
         pause
     fi
 }
-
-# Create log directory (if needed)
-sudo mkdir "${LOG_DIR}" > /dev/null 2>&1
-sudo chmod 777 "${LOG_DIR}" > /dev/null 2>&1
 
 # Main loop
 while true; do
@@ -191,19 +245,25 @@ while true; do
             handle_service "$choice"
             ;;
         8)
-            sub_choice=$(show_backup_menu)
-
-            case $sub_choice in
-                1|2)
-                    handle_backup "$sub_choice"
-                    ;;
-                3|4)
-                    handle_restore "$sub_choice"
-                    ;;
-                *)
-                    break
-                    ;;
-            esac
+            if [ $BR -eq 0 ]
+            then
+                # Display error message
+                whiptail --title "Backup/Restore" --msgbox "No sudo to 'root'. access !" 10 80
+            else
+                sub_choice=$(show_backup_menu)
+    
+                case $sub_choice in
+                    1|2)
+                        handle_backup "$sub_choice"
+                        ;;
+                    3|4)
+                        handle_restore "$sub_choice"
+                        ;;
+                    *)
+                        break
+                        ;;
+                esac
+            fi
             ;;
         *)
             exit
