@@ -191,18 +191,18 @@ handle_upgrade() {
         tee -a "${LOG_DIR}/homeassistant-manager.log"
         # Show release note
         tempfile=$(mktemp)
-        curl -s https://api.github.com/repos/home-assistant/core/releases/latest | jq -r '.body' | grep -E "^-" | while read line; do  echo "$line" | dos2unix | sed 's/([^)]*)//g' >> $tempfile; done
+        curl -s https://api.github.com/repos/home-assistant/core/releases/latest | jq -r '.body' | grep -E "^-" | while read line; do  echo "$line" | dos2unix | sed 's/([^)]*)//g' >> "${tempfile}"; done
         whiptail --title "Latest 'stable' Release Notes" --textbox "${tempfile}" 30 100 
-        rm -f $tempfile
+        rm -f "${tempfile}"
     elif [ "$1" == "2" ]; then
         # Upgrade to Beta channel
         echo "Info: Upgrading to 'beta' channel..."
         sudo -u ${HA_USER} -H -s /bin/bash -c "cd ${VENV_DIR} && source bin/activate && pip3 install --pre -u ${HA_USER}" | 
         tee -a "${LOG_DIR}/homeassistant-manager.log"
         tempfile=$(mktemp)
-        curl -s https://api.github.com/repos/home-assistant/core/releases | jq -r '.[] | select(.prerelease == true) | .body' | sed '/^$/q' | grep -E "^-" | while read line; do  echo "$line" | dos2unix | sed 's/([^)]*)//g' >> $tempfile; done
+        curl -s https://api.github.com/repos/home-assistant/core/releases | jq -r '.[] | select(.prerelease == true) | .body' | sed '/^$/q' | grep -E "^-" | while read line; do  echo "$line" | dos2unix | sed 's/([^)]*)//g' >> "${tempfile}"; done
         whiptail --title "Latest 'beta' Release Notes" --textbox "${tempfile}" 30 100 
-        rm -f $tempfile
+        rm -f "${tempfile}"
     fi
 }
 
