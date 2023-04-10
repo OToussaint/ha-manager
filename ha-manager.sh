@@ -65,6 +65,26 @@ else
   exit 1
 fi
 
+# Function to retry curl if it fails
+my_curl() {
+    local retries=$1
+    shift
+    local response=
+
+    for i in $(seq "$retries"); do
+        response=$(curl -s "$@")
+
+        if [ -n "$response" ]; then
+            echo "$response"
+            return 0
+        fi
+
+        sleep 1
+    done
+
+    return 1
+}
+
 # Function to pause display
 pause(){
  read -s -n 1 -p "Press any key to continue . . ."
@@ -186,13 +206,13 @@ handle_upgrade() {
     if [ "$1" == "1" ]; then
         # Upgrade to Release channel
         echo "Info: Upgrading to 'stable' channel..."
-        VERSION=$(curl -s https://api.github.com/repos/home-assistant/core/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')
+        VERSION=$(my_curl 5 https://api.github.com/repos/home-assistant/core/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')
         sudo -u ${HA_USER} -H -s /bin/bash -c "cd ${VENV_DIR} && source bin/activate && pip3 install -U homeassistant==${VERSION}" | 
         tee -a "${LOG_DIR}/homeassistant-manager.log"
         # Show release note
         tempfile=$(mktemp)
-        curl -s https://api.github.com/repos/home-assistant/core/releases/latest | jq -r '.body' | grep -E "^-" | while read line; do  echo "$line" | dos2unix | sed 's/([^)]*)//g' >> "${tempfile}"; done
-        whiptail --title "Latest 'stable' Release Notes" --textbox "${tempfile}" 30 100 
+        my_curl 5 https://api.github.com/repos/home-assistant/core/releases/latest | jq -r '.body' | grep -E "^-" | while read line; do  echo "$line" | dos2unix | sed 's/([^)]*)//g' >> "${tempfile}"; done
+        whiptail --scrolltext --title "Latest 'stable' Release Notes" --textbox "${tempfile}" 30 100 
         rm -f "${tempfile}"
     elif [ "$1" == "2" ]; then
         # Upgrade to Beta channel
@@ -200,8 +220,8 @@ handle_upgrade() {
         sudo -u ${HA_USER} -H -s /bin/bash -c "cd ${VENV_DIR} && source bin/activate && pip3 install --pre -u ${HA_USER}" | 
         tee -a "${LOG_DIR}/homeassistant-manager.log"
         tempfile=$(mktemp)
-        curl -s https://api.github.com/repos/home-assistant/core/releases | jq -r '.[] | select(.prerelease == true) | .body' | sed '/^$/q' | grep -E "^-" | while read line; do  echo "$line" | dos2unix | sed 's/([^)]*)//g' >> "${tempfile}"; done
-        whiptail --title "Latest 'beta' Release Notes" --textbox "${tempfile}" 30 100 
+        my_curl 5 https://api.github.com/repos/home-assistant/core/releases | jq -r '.[] | select(.prerelease == true) | .body' | sed '/^$/q' | grep -E "^-" | while read line; do  echo "$line" | dos2unix | sed 's/([^)]*)//g' >> "${tempfile}"; done
+        whiptail --scrolltext --title "Latest 'beta' Release Notes" --textbox "${tempfile}" 30 100 
         rm -f "${tempfile}"
     fi
 }
