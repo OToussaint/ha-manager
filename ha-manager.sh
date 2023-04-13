@@ -28,7 +28,7 @@ if ! which tee >/dev/null; then
   exit 1
 fi
 
-required_commands=(sudo whiptail curl jq sed dos2unix)
+required_commands=(sudo whiptail curl jq sed dos2unix tput)
 
 for cmd in "${required_commands[@]}"; do
   if ! command -v "${cmd}" >/dev/null; then
@@ -99,7 +99,7 @@ get_files() {
         i=$((i+1))
         W+=($i "$line")
     done < <( ls -1 "$1" )
-    FILE_CHOICE=$(whiptail --title "List file of directory" --menu "Chose one" 24 80 17 "${W[@]}" 3>&2 2>&1 1>&3) # show dialog and store output
+    FILE_CHOICE=$(whiptail --title "List file of directory" --menu "Chose one" $((rows < 24 ? rows : 24)) $((columns < 80 ? columns : 80)) $((rows < 24 ? rows - 7 : 17)) "${W[@]}" 3>&2 2>&1 1>&3) # show dialog and store output
     if [ $? -eq 0 ]; then # Exit with OK
         FILE=$(ls -1 "$1" | sed -n "$(echo "$FILE_CHOICE p" | sed 's/ //')")
     fi
@@ -107,7 +107,7 @@ get_files() {
 
 # Function to show backup/restore menu
 show_backup_menu() {
-    whiptail --title "Home Assistant Backup Manager" --menu "Select an option:" 15 60 7 \
+    whiptail --title "Home Assistant Backup Manager" --menu "Select an option:" $((rows < 15 ? rows : 15)) $((columns < 60 ? columns : 60)) 4 \
     "1" "Backup the venv" \
     "2" "Backup the configuration" \
     "3" "Restore the venv" \
@@ -130,7 +130,7 @@ backup_SQLite() {
     eval "$cmd"
 
     # Display success message
-    whiptail --title "Backup" --msgbox "File created successfully!" 10 80
+    whiptail --title "Backup" --msgbox "File created successfully!" $((rows < 10 ? rows : 10)) $((columns < 60 ? columns : 60))
 }
 
 # Function to backup a MySQL/MariaDB database
@@ -156,7 +156,7 @@ handle_backup() {
 
     # Prompt the directory 
     TITLE=$([ "$1" == 1 ] && echo "venv" || echo "configuration")
-    DEST_DIR=$(whiptail --title "Backup ${TITLE}" --inputbox "Enter backup location:" 10 80 "${BACKUP_ROOT_DIR}/${TITLE}" 3>&1 1>&2 2>&3)
+    DEST_DIR=$(whiptail --title "Backup ${TITLE}" --inputbox "Enter backup location:" $((rows < 10 ? rows : 10)) $((columns < 80 ? columns : 80)) "${BACKUP_ROOT_DIR}/${TITLE}" 3>&1 1>&2 2>&3)
 
     # Check if user canceled or if no destination was entered
     if [ $? -ne 0 ] || [ -z "$DEST_DIR" ]; then
@@ -187,7 +187,7 @@ handle_backup() {
     eval "$cmd"
 
     # Display success message
-    whiptail --title "Backup" --msgbox "File created successfully!" 10 80
+    whiptail --title "Backup" --msgbox "File created successfully!" $((rows < 10 ? rows : 10)) $((columns < 80 ? columns : 80))
 
 }
 
@@ -207,7 +207,7 @@ handle_restore() {
    
     # Prompt the directory 
     TITLE=$([ "$1" == 3 ] && echo "venv" || echo "configuration")
-    DEST_DIR=$(whiptail --title "Extract ${TITLE} Backup File" --inputbox "Enter extraction location:" 10 80 "${BACKUP_ROOT_DIR}/${TITLE}" 3>&1 1>&2 2>&3)
+    DEST_DIR=$(whiptail --title "Extract ${TITLE} Backup File" --inputbox "Enter extraction location:" $((rows < 10 ? rows : 10)) $((columns < 80 ? columns : 80)) "${BACKUP_ROOT_DIR}/${TITLE}" 3>&1 1>&2 2>&3)
 
     # Check if user canceled or if no destination was entered
     if [ $? -ne 0 ] || [ -z "$DEST_DIR" ]; then
@@ -220,14 +220,14 @@ handle_restore() {
     eval "$cmd"
     
     # Display success message
-    whiptail --title "Restore backup" --msgbox "File extracted successfully!" 10 80
+    whiptail --title "Restore backup" --msgbox "File extracted successfully!" $((rows < 10 ? rows : 10)) $((columns < 80 ? columns : 80))
 }
 
 # Function to display the main menu
 show_main_menu() {
     STABLE=$(curl -s "https://pypi.org/pypi/homeassistant/json" | jq -r '.info.version')
     BETA=$(curl -s "https://api.github.com/repos/home-assistant/core/releases" | jq -r '.[] | select(.prerelease == true) | .tag_name' | head -n 1)
-    whiptail --clear --title "Home Assistant Manager" --menu "Select an option:" 15 60 8 \
+    whiptail --clear --title "Home Assistant Manager" --menu "Select an option:" $((rows < 15 ? rows : 15)) $((columns < 60 ? columns : 60)) 8 \
     "1" "Upgrade to 'stable' channel (${STABLE})" \
     "2" "Upgrade to 'beta' channel (${BETA})" \
     "3" "Check logs" \
@@ -248,8 +248,8 @@ handle_upgrade() {
         tee -a "${LOG_DIR}/homeassistant-manager.log"
         # Show release note
         tempfile=$(mktemp)
-        my_curl 5 https://api.github.com/repos/home-assistant/core/releases/latest | jq -r '.body' | grep -E "^-" | while read line; do  echo "$line" | dos2unix | sed 's/([^)]*)//g' >> "${tempfile}"; done
-        whiptail --scrolltext --title "Latest 'stable' Release Notes" --textbox "${tempfile}" 30 100 
+        my_curl 5 https://api.github.com/repos/home-assistant/core/releases/latest | jq -r '.body' | grep -E "^-" | while read line; do  echo "$line" | dos2unix | sed 's/([^)]*)//g' | fold -w 70 -s | sed '2,$ s/^/    /' >> "${tempfile}"; done
+        whiptail --scrolltext --title "Latest 'stable' Release Notes" --textbox "${tempfile}" $((rows < 30 ? rows : 30)) $((columns < 100 ? columns : 100))
         rm -f "${tempfile}"
     elif [ "$1" == "2" ]; then
         # Upgrade to Beta channel
@@ -257,8 +257,8 @@ handle_upgrade() {
         sudo -u ${HA_USER} -H -s /bin/bash -c "cd ${VENV_DIR} && source bin/activate && pip3 install --pre -u ${HA_USER}" | 
         tee -a "${LOG_DIR}/homeassistant-manager.log"
         tempfile=$(mktemp)
-        my_curl 5 https://api.github.com/repos/home-assistant/core/releases | jq -r '.[] | select(.prerelease == true) | .body' | sed '/^$/q' | grep -E "^-" | while read line; do  echo "$line" | dos2unix | sed 's/([^)]*)//g' >> "${tempfile}"; done
-        whiptail --scrolltext --title "Latest 'beta' Release Notes" --textbox "${tempfile}" 30 100 
+        my_curl 5 https://api.github.com/repos/home-assistant/core/releases | jq -r '.[] | select(.prerelease == true) | .body' | sed '/^$/q' | grep -E "^-" | while read line; do  echo "$line" | dos2unix | sed 's/([^)]*)//g' | fold -w 70 -s | sed '2,$ s/^/    /' >> "${tempfile}"; done
+        whiptail --scrolltext --title "Latest 'beta' Release Notes" --textbox "${tempfile}" $((rows < 30 ? rows : 30)) $((columns < 100 ? columns : 100))
         rm -f "${tempfile}"
     fi
 }
@@ -295,6 +295,9 @@ handle_check() {
     fi
 }
 
+rows=$(tput lines)
+columns=$(tput cols)
+
 # Main loop
 while true; do
     choice=$(show_main_menu)
@@ -313,7 +316,7 @@ while true; do
             if [ $BR -eq 0 ]
             then
                 # Display error message
-                whiptail --title "Backup/Restore" --msgbox "Backup/Restore is unavailable, check the log file for more information" 10 80
+                whiptail --title "Backup/Restore" --msgbox "Backup/Restore is unavailable, check the log file for more information" $((rows < 10 ? rows : 10)) $((columns < 80 ? columns : 80))
             else
                 sub_choice=$(show_backup_menu)
     
