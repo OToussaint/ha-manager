@@ -139,6 +139,7 @@ backup_mySQL() {
     # Shut down the MariaDB/MySQL service
     # Dump the DB like 'mysqldump --user=admin_backup --password --lock-tables --databases db1 >/backupdir/dbnameback.sql'
     # Restart MariaDB/MySQL
+    echo ""
 }
 
 # Function to backup a PostgreSQL database
@@ -147,6 +148,7 @@ backup_postgreSQL() {
     # Shut down the PostgreSQL service.
     # Dump the DB like 'PostgreSQLdump -u root -p dbname >/backupdir/dbnameback.sql'
     # Restart PostgreSQL.
+    echo ""
 }
 
 # function to handle restores
