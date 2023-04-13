@@ -28,7 +28,7 @@ if ! which tee >/dev/null; then
   exit 1
 fi
 
-required_commands=(sudo whiptail curl jq sed)
+required_commands=(sudo whiptail curl jq sed dos2unix)
 
 for cmd in "${required_commands[@]}"; do
   if ! command -v "${cmd}" >/dev/null; then
@@ -112,6 +112,41 @@ show_backup_menu() {
     "2" "Backup the configuration" \
     "3" "Restore the venv" \
     "4" "Restore the configuration" 2>&1 > /dev/tty | tee -a "${LOG_DIR}/homeassistant-manager.log"
+}
+
+# Function to backup a SQLite DB (e.g.: home-assistant_v2.db)
+backup_SQLite() {
+    local DB_FILE="$1"
+    local DEST_DIR="$2"
+    if ! test -f "$DB_FILE"; then
+        echo "Error: file ${1} doesn't exist." | tee -a "${LOG_DIR}/homeassistant-manager.log"
+        pause
+        return
+    fi
+
+    # Get current version of HA
+    VERSION=$(sudo -u ${HA_USER} -H -s /bin/bash -c "source ${VENV_DIR}/bin/activate && hass --version")
+    cmd+="sqlite3 \"${DB_FILE}\" \".backup '${DEST_DIR}/${VERSION}-db-$(date +%F).db.backup'\""
+    eval "$cmd"
+
+    # Display success message
+    whiptail --title "Backup" --msgbox "File created successfully!" 10 80
+}
+
+# Function to backup a MySQL/MariaDB database
+backup_mySQL() {
+    # I'll need some additional info for that
+    # Shut down the MariaDB/MySQL service
+    # Dump the DB like 'mysqldump --user=admin_backup --password --lock-tables --databases db1 >/backupdir/dbnameback.sql'
+    # Restart MariaDB/MySQL
+}
+
+# Function to backup a PostgreSQL database
+backup_postgreSQL() {
+    # I'll need some additional info for that
+    # Shut down the PostgreSQL service.
+    # Dump the DB like 'PostgreSQLdump -u root -p dbname >/backupdir/dbnameback.sql'
+    # Restart PostgreSQL.
 }
 
 # function to handle restores
