@@ -98,7 +98,7 @@ get_files() {
     while read -r line; do # process file by file
         i=$((i+1))
         W+=($i "$line")
-    done < <( ls -1 "$1" )
+    done < <( ls -1r "$1" )
     FILE_CHOICE=$(whiptail --title "List file of directory" --menu "Chose one" $((rows < 24 ? rows : 24)) $((columns < 80 ? columns : 80)) $((rows < 24 ? rows - 7 : 17)) "${W[@]}" 3>&2 2>&1 1>&3) # show dialog and store output
     if [ $? -eq 0 ]; then # Exit with OK
         FILE=$(ls -1 "$1" | sed -n "$(echo "$FILE_CHOICE p" | sed 's/ //')")
