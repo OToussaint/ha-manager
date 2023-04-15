@@ -314,6 +314,13 @@ handle_check() {
 rows=$(tput lines)
 columns=$(tput cols)
 
+function cleanup() {
+    echo ""
+}
+
+# Intercept the ctrl+c signal and call the cleanup function
+trap cleanup SIGINT
+
 # Main loop
 while true; do
     choice=$(show_main_menu)
