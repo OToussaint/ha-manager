@@ -1,11 +1,27 @@
 #!/bin/bash
 
-# Configuration section
-VENV_DIR="/srv/homeassistant"
-CONFIG_DIR="/home/homeassistant/.homeassistant"
-BACKUP_ROOT_DIR="/mnt/backup/Home Assistant"
-LOG_DIR="/var/log/homeassistant"
-HA_USER="homeassistant"
+# Check if jq is installed (to read config file)
+if ! which tee >/dev/null; then
+  echo "Error: jq is required to read the configuration file but not installed. Aborting."
+  exit 1
+fi
+
+# Read config file
+# Load the config file
+CONFIG_FILE="$(dirname "$0")/ha-manager.json"
+if [ -f "$CONFIG_FILE" ]; then
+  config=$(cat "$CONFIG_FILE")
+else
+  echo "Config file not found: $CONFIG_FILE"
+  exit 1
+fi
+
+# Get the values from the config file with default values
+VENV_DIR=$(echo "$config" | jq -r '.VENV_DIR // "/srv/homeassistant"')
+CONFIG_DIR=$(echo "$config" | jq -r '.CONFIG_DIR // "/home/homeassistant/.homeassistant"')
+BACKUP_ROOT_DIR=$(echo "$config" | jq -r '.BACKUP_ROOT_DIR // "/mnt/backup/Home Assistant"')
+LOG_DIR=$(echo "$config" | jq -r '.LOG_DIR // "/var/log/homeassistant"')
+HA_USER=$(echo "$config" | jq -r '.HA_USER // "homeassistant"')
 
 # Test environment
 directories=("${VENV_DIR}" "${CONFIG_DIR}")

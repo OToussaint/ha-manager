@@ -6,18 +6,19 @@ Add exec permissions to the script in order to use it with:
 ```
 chmod u+x ha-manager.sh
 ```
-Edit the file with:
+Edit the config file with:
 ```
-nano ha-manager.sh
+nano ha-manager.json
 ```
 Change the variables to match your installation:
 ```
-# Configuration section
-VENV_DIR="/srv/homeassistant"
-CONFIG_DIR="/home/homeassistant/.homeassistant"
-BACKUP_ROOT_DIR="/mnt/backup/Home Assistant"
-LOG_DIR="/var/log/homeassistant"
-HA_USER="homeassistant"
+{
+    "VENV_DIR": "/srv/homeassistant",
+    "CONFIG_DIR": "/home/homeassistant/.homeassistant",
+    "BACKUP_ROOT_DIR": "/mnt/backup/Home Assistant",
+    "LOG_DIR": "/var/log/homeassistant",
+    "HA_USER": "homeassistant"
+}
 ```
 
 Then run the script:
