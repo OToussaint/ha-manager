@@ -74,7 +74,7 @@ else
 fi
 
 # Check if sudo to HA user is possible
-if sudo -u ${HA_USER} -H -s ls >/dev/null 2>&1; then
+if sudo -u "${HA_USER}" -H -s ls >/dev/null 2>&1; then
   echo -n ""
 else
   echo "Error: sudo to ${HA_USER} failed but it is required. Aborting." | tee -a "${LOG_DIR}/homeassistant-manager.log"
@@ -141,7 +141,7 @@ backup_SQLite() {
     fi
 
     # Get current version of HA
-    VERSION=$(sudo -u ${HA_USER} -H -s /bin/bash -c "source ${VENV_DIR}/bin/activate && hass --version")
+    VERSION=$(sudo -u "${HA_USER}" -H -s /bin/bash -c "source ${VENV_DIR}/bin/activate && hass --version")
     cmd+="sqlite3 \"${DB_FILE}\" \".backup '${DEST_DIR}/${VERSION}-db-$(date +%F).db.backup'\""
     eval "$cmd"
 
@@ -181,7 +181,7 @@ handle_backup() {
     fi
 
     # Get current version of HA
-    VERSION=$(sudo -u ${HA_USER} -H -s /bin/bash -c "source ${VENV_DIR}/bin/activate && hass --version")
+    VERSION=$(sudo -u "${HA_USER}" -H -s /bin/bash -c "source ${VENV_DIR}/bin/activate && hass --version")
 
     # Extract selected file to destination
     if [ "$1" == "1" ]; then
@@ -260,7 +260,7 @@ handle_upgrade() {
         # Upgrade to Release channel
         echo "Info: Upgrading to 'stable' channel..."
         VERSION=$(my_curl 5 https://api.github.com/repos/home-assistant/core/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')
-        sudo -u ${HA_USER} -H -s /bin/bash -c "cd ${VENV_DIR} && source bin/activate && pip3 install -U homeassistant==${VERSION}" | 
+        sudo -u "${HA_USER}" -H -s /bin/bash -c "cd ${VENV_DIR} && source bin/activate && pip3 install -U homeassistant==${VERSION}" | 
         tee -a "${LOG_DIR}/homeassistant-manager.log"
         # Show release note
         tempfile=$(mktemp)
@@ -270,7 +270,7 @@ handle_upgrade() {
     elif [ "$1" == "2" ]; then
         # Upgrade to Beta channel
         echo "Info: Upgrading to 'beta' channel..."
-        sudo -u ${HA_USER} -H -s /bin/bash -c "cd ${VENV_DIR} && source bin/activate && pip3 install --pre -u ${HA_USER}" | 
+        sudo -u "${HA_USER}" -H -s /bin/bash -c "cd ${VENV_DIR} && source bin/activate && pip3 install --pre -u ${HA_USER}" | 
         tee -a "${LOG_DIR}/homeassistant-manager.log"
         tempfile=$(mktemp)
         my_curl 5 https://api.github.com/repos/home-assistant/core/releases | jq -r '.[] | select(.prerelease == true) | .body' | sed '/^$/q' | grep -E "^-" | while read line; do  echo "$line" | dos2unix | sed 's/([^)]*)//g' | fold -w 70 -s | sed '2,$ s/^/    /' >> "${tempfile}"; done
@@ -284,15 +284,15 @@ handle_service() {
     if [ "$1" == "5" ]; then
         # Start Home Assistant
         echo "Info: Starting Home Assistant..."
-        sudo systemctl start home-assistant@${HA_USER}.service | tee -a "${LOG_DIR}/homeassistant-manager.log"
+        sudo systemctl start home-assistant@"${HA_USER}".service | tee -a "${LOG_DIR}/homeassistant-manager.log"
     elif [ "$1" == "6" ]; then
         # Stop Home Assistant
         echo "Info: Stopping Home Assistant..."
-        sudo systemctl stop home-assistant@${HA_USER}.service | tee -a "${LOG_DIR}/homeassistant-manager.log"
+        sudo systemctl stop home-assistant@"${HA_USER}".service | tee -a "${LOG_DIR}/homeassistant-manager.log"
     elif [ "$1" == "7" ]; then
         # Restart Home Assistant
         echo "Info: Restarting Home Assistant..."
-        sudo systemctl restart home-assistant@${HA_USER}.service | tee -a "${LOG_DIR}/homeassistant-manager.log"
+        sudo systemctl restart home-assistant@"${HA_USER}".service | tee -a "${LOG_DIR}/homeassistant-manager.log"
     fi
 }
 
@@ -301,11 +301,11 @@ handle_check() {
     if [ "$1" == "3" ]; then
         # Check Logs
         echo "Info: Checking logs...press ^C when done"
-        sudo journalctl -f -u home-assistant@${HA_USER}.service
+        sudo journalctl -f -u home-assistant@"${HA_USER}".service
     elif [ "$1" == "4" ]; then
         # Check Configuration
         echo "Info: Checking configuration..."
-        sudo -u ${HA_USER} -H -s /bin/bash -c "source ${VENV_DIR}/bin/activate && hass --script check_config" | 
+        sudo -u "${HA_USER}" -H -s /bin/bash -c "source ${VENV_DIR}/bin/activate && hass --script check_config" | 
         tee -a "${LOG_DIR}/homeassistant-manager.log"
         pause
     fi
