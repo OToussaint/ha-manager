@@ -2,11 +2,11 @@
 A shell utility script to easily manage your Home Assistant installation in Python venv.  
 This script is using whiptail.
 # How to use it:
-Add exec permissions to the script in order to use it with:
+Add exec permissions to the script in order to use it:
 ```
 chmod u+x ha-manager.sh
 ```
-Edit the config file with:
+Edit the config file:
 ```
 nano ha-manager.json
 ```
