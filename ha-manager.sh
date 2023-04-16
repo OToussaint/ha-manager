@@ -103,21 +103,21 @@ my_curl() {
 
 # Function to pause display
 pause(){
- read -s -n 1 -p "Press any key to continue . . ."
+ read -r -s -n 1 -p "Press any key to continue . . ."
  echo ""
 }
 
 # Function to get list of files in a directory
 get_files() {
-    let i=0 # define counting variable
+    (( i=0 )) # define counting variable
     W=() # define working array
     while read -r line; do # process file by file
         i=$((i+1))
-        W+=($i "$line")
+        W+=("$i" "$line")
     done < <( ls -1r "$1" )
     FILE_CHOICE=$(whiptail --title "List file of directory" --menu "Chose one" $((rows < 24 ? rows : 24)) $((columns < 80 ? columns : 80)) $((rows < 24 ? rows - 7 : 17)) "${W[@]}" 3>&2 2>&1 1>&3) # show dialog and store output
     if [ $? -eq 0 ]; then # Exit with OK
-        FILE=$(ls -1 "$1" | sed -n "$(echo "$FILE_CHOICE p" | sed 's/ //')")
+        FILE=$(find "$1" -type f -printf '%T@ %f\n' | sort -rn | sed -n "$FILE_CHOICE p" | sed 's/^[0-9.]\+ //;s/\(.*\)/\1/')
     fi
 }
 
@@ -264,7 +264,7 @@ handle_upgrade() {
         tee -a "${LOG_DIR}/homeassistant-manager.log"
         # Show release note
         tempfile=$(mktemp)
-        my_curl 5 https://api.github.com/repos/home-assistant/core/releases/latest | jq -r '.body' | grep -E "^-" | while read line; do  echo "$line" | dos2unix | sed 's/([^)]*)//g' | fold -w 70 -s | sed '2,$ s/^/    /' >> "${tempfile}"; done
+        my_curl 5 https://api.github.com/repos/home-assistant/core/releases/latest | jq -r '.body' | grep -E "^-" | while read -r line; do  echo "$line" | dos2unix | sed 's/([^)]*)//g' | fold -w 70 -s | sed '2,$ s/^/    /' >> "${tempfile}"; done
         whiptail --scrolltext --title "Latest 'stable' Release Notes" --textbox "${tempfile}" $((rows < 30 ? rows : 30)) $((columns < 100 ? columns : 100))
         rm -f "${tempfile}"
     elif [ "$1" == "2" ]; then
@@ -273,7 +273,7 @@ handle_upgrade() {
         sudo -u "${HA_USER}" -H -s /bin/bash -c "cd ${VENV_DIR} && source bin/activate && pip3 install --pre -u ${HA_USER}" | 
         tee -a "${LOG_DIR}/homeassistant-manager.log"
         tempfile=$(mktemp)
-        my_curl 5 https://api.github.com/repos/home-assistant/core/releases | jq -r '.[] | select(.prerelease == true) | .body' | sed '/^$/q' | grep -E "^-" | while read line; do  echo "$line" | dos2unix | sed 's/([^)]*)//g' | fold -w 70 -s | sed '2,$ s/^/    /' >> "${tempfile}"; done
+        my_curl 5 https://api.github.com/repos/home-assistant/core/releases | jq -r '.[] | select(.prerelease == true) | .body' | sed '/^$/q' | grep -E "^-" | while read -r line; do  echo "$line" | dos2unix | sed 's/([^)]*)//g' | fold -w 70 -s | sed '2,$ s/^/    /' >> "${tempfile}"; done
         whiptail --scrolltext --title "Latest 'beta' Release Notes" --textbox "${tempfile}" $((rows < 30 ? rows : 30)) $((columns < 100 ? columns : 100))
         rm -f "${tempfile}"
     fi
