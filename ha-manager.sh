@@ -115,8 +115,7 @@ get_files() {
         i=$((i+1))
         W+=("$i" "$line")
     done < <( ls -1r "$1" )
-    FILE_CHOICE=$(whiptail --title "List file of directory" --menu "Chose one" $((rows < 24 ? rows : 24)) $((columns < 80 ? columns : 80)) $((rows < 24 ? rows - 7 : 17)) "${W[@]}" 3>&2 2>&1 1>&3) # show dialog and store output
-    if [ $? -eq 0 ]; then # Exit with OK
+    if FILE_CHOICE=$(whiptail --title "List file of directory" --menu "Chose one" $((rows < 24 ? rows : 24)) $((columns < 80 ? columns : 80)) $((rows < 24 ? rows - 7 : 17)) "${W[@]}" 3>&2 2>&1 1>&3); then
         FILE=$(find "$1" -type f -printf '%T@ %f\n' | sort -rn | sed -n "$FILE_CHOICE p" | sed 's/^[0-9.]\+ //;s/\(.*\)/\1/')
     fi
 }
@@ -172,10 +171,9 @@ handle_backup() {
 
     # Prompt the directory 
     TITLE=$([ "$1" == 1 ] && echo "venv" || echo "configuration")
-    DEST_DIR=$(whiptail --title "Backup ${TITLE}" --inputbox "Enter backup location:" $((rows < 10 ? rows : 10)) $((columns < 80 ? columns : 80)) "${BACKUP_ROOT_DIR}/${TITLE}" 3>&1 1>&2 2>&3)
 
     # Check if user canceled or if no destination was entered
-    if [ $? -ne 0 ] || [ -z "$DEST_DIR" ]; then
+    if ! DEST_DIR=$(whiptail --title "Backup ${TITLE}" --inputbox "Enter backup location:" $((rows < 10 ? rows : 10)) $((columns < 80 ? columns : 80)) "${BACKUP_ROOT_DIR}/${TITLE}" 3>&1 1>&2 2>&3) || [ -z "$DEST_DIR" ]; then
         echo "Info: No destination. Operation canceled." | tee -a "${LOG_DIR}/homeassistant-manager.log"
         return
     fi
@@ -213,20 +211,14 @@ handle_restore() {
     TITLE=$([ "$1" == 3 ] && echo "venv" || echo "configuration")
   
     # Get list of available files
-    get_files "${BACKUP_ROOT_DIR}/${TITLE}"
-
-    # Check if user canceled or if no file was selected
-    if [ $? -ne 0 ] || [ -z "$FILE" ]; then
+    if ! get_files "${BACKUP_ROOT_DIR}/${TITLE}" || [ -z "$FILE" ]; then
         echo "No file selected. Operation canceled." | tee -a "${LOG_DIR}/homeassistant-manager.log"
         return
     fi
    
     # Prompt the directory 
     TITLE=$([ "$1" == 3 ] && echo "venv" || echo "configuration")
-    DEST_DIR=$(whiptail --title "Extract ${TITLE} Backup File" --inputbox "Enter extraction location:" $((rows < 10 ? rows : 10)) $((columns < 80 ? columns : 80)) "${BACKUP_ROOT_DIR}/${TITLE}" 3>&1 1>&2 2>&3)
-
-    # Check if user canceled or if no destination was entered
-    if [ $? -ne 0 ] || [ -z "$DEST_DIR" ]; then
+    if ! DEST_DIR=$(whiptail --title "Extract ${TITLE} Backup File" --inputbox "Enter extraction location:" $((rows < 10 ? rows : 10)) $((columns < 80 ? columns : 80)) "${BACKUP_ROOT_DIR}/${TITLE}" 3>&1 1>&2 2>&3) || [ -z "$DEST_DIR" ]; then
         echo "Info: No destination. Operation canceled." | tee -a "${LOG_DIR}/homeassistant-manager.log"
         return
     fi
