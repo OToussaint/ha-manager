@@ -117,7 +117,7 @@ get_files() {
     done < <( ls -1r "$1" )
     FILE_CHOICE=$(whiptail --title "List file of directory" --menu "Chose one" $((rows < 24 ? rows : 24)) $((columns < 80 ? columns : 80)) $((rows < 24 ? rows - 7 : 17)) "${W[@]}" 3>&2 2>&1 1>&3) # show dialog and store output
     if [ $? -eq 0 ]; then # Exit with OK
-        FILE=$(ls -1 "$1" | sed -n "$(echo "$FILE_CHOICE p" | sed 's/ //')")
+        FILE=$(ls -1r "$1" | sed -n "$(echo "$FILE_CHOICE p" | sed 's/ //')")
     fi
 }
 
@@ -239,11 +239,47 @@ handle_restore() {
     whiptail --title "Restore backup" --msgbox "File extracted successfully!" $((rows < 10 ? rows : 10)) $((columns < 80 ? columns : 80))
 }
 
+handle_previous_releases() {
+    # Get all releases
+    releases=$(my_curl 5 https://api.github.com/repos/home-assistant/core/releases?per_page=100)
+    
+    # Loop through last 5 months and filter releases by date
+    MENU=$( for i in {1..5}; do
+
+                # Calculate date
+                date=$(date -d "$(date +%Y-%m-15) -$i month" +%Y.%-m)
+
+                # Filter releases by date and select latest version
+                latest_version=$(echo $releases | jq -r --arg date "$date" '.[] | select(.prerelease == false and (.tag_name | startswith($date))) | .tag_name' | sort -V | tail -1)
+
+                # echo last
+                echo "$latest_version"
+            done)
+
+    VERSION=$(whiptail --title "Home Assistant Releases" --menu "Select a release:" $((rows < 12 ? rows : 12)) $((columns < 80 ? columns : 80)) 5 $(echo "${MENU}" | awk '{print NR " " $0 ""}') 3>&1 1>&2 2>&3)
+    if [ -n "$VERSION" ] && [ "$VERSION" -ne 0 ]; then
+        INSTALL=$(echo "${MENU}" | sed -n "${VERSION}p")
+        # Downgrading
+        echo "Info: Downgrading to 'stable' version ${INSTALL}..."
+        sudo -u "${HA_USER}" -H -s /bin/bash -c "cd ${VENV_DIR} && source bin/activate && pip3 install -U homeassistant==${INSTALL}" | 
+        tee -a "${LOG_DIR}/homeassistant-manager.log"
+        # Show release note
+        tempfile=$(mktemp)
+        my_curl 5 https://api.github.com/repos/home-assistant/core/releases/tags/${INSTALL} | jq -r '.body' | grep -E "^-" | while read line; do  echo "$line" | dos2unix | sed 's/([^)]*)//g' | fold -w 70 -s | sed '2,$ s/^/    /' >> "${tempfile}"; done
+        whiptail --scrolltext --title "${INSTALL} Release Notes" --textbox "${tempfile}" $((rows < 30 ? rows : 30)) $((columns < 100 ? columns : 100))
+        rm -f "${tempfile}"
+
+        # Warn user about restart
+        echo "A restart is required. Please check configuration and restart HA." | tee -a "${LOG_DIR}/homeassistant-manager.log"
+        pause
+    fi
+}
+
 # Function to display the main menu
 show_main_menu() {
     STABLE=$(curl -s "https://pypi.org/pypi/homeassistant/json" | jq -r '.info.version')
     BETA=$(curl -s "https://api.github.com/repos/home-assistant/core/releases" | jq -r '.[] | select(.prerelease == true) | .tag_name' | head -n 1)
-    whiptail --clear --title "Home Assistant Manager" --menu "Select an option:" $((rows < 15 ? rows : 15)) $((columns < 60 ? columns : 60)) 8 \
+    whiptail --clear --title "Home Assistant Manager" --menu "Select an option:" $((rows < 16 ? rows : 16)) $((columns < 70 ? columns : 70)) 9 \
     "1" "Upgrade to 'stable' channel (${STABLE})" \
     "2" "Upgrade to 'beta' channel (${BETA})" \
     "3" "Check logs" \
@@ -251,7 +287,8 @@ show_main_menu() {
     "5" "Start Home Assistant" \
     "6" "Stop Home Assistant" \
     "7" "Restart Home Assistant" \
-    "8" "Backup/Restore configuration" 2>&1 > /dev/tty | tee -a "${LOG_DIR}/homeassistant-manager.log"
+    "8" "Backup/Restore configuration" \
+    "9" "Install release from one of the last 5 months" 2>&1 > /dev/tty | tee -a "${LOG_DIR}/homeassistant-manager.log"
 }
 
 # Function to handle upgrades
@@ -348,6 +385,9 @@ while true; do
                         ;;
                 esac
             fi
+            ;;
+        9)
+            handle_previous_releases "$choice"
             ;;
         *)
             exit
