@@ -242,7 +242,7 @@ handle_previous_releases() {
                 date=$(date -d "$(date +%Y-%m-15) -$i month" +%Y.%-m)
 
                 # Filter releases by date and select latest version
-                latest_version=$(echo $releases | jq -r --arg date "$date" '.[] | select(.prerelease == false and (.tag_name | startswith($date))) | .tag_name' | sort -V | tail -1)
+                latest_version=$(echo "$releases" | jq -r --arg date "$date" '.[] | select(.prerelease == false and (.tag_name | startswith($date))) | .tag_name' | sort -V | tail -1)
 
                 # echo last
                 echo "$latest_version"
@@ -257,7 +257,7 @@ handle_previous_releases() {
         tee -a "${LOG_DIR}/homeassistant-manager.log"
         # Show release note
         tempfile=$(mktemp)
-        my_curl 5 https://api.github.com/repos/home-assistant/core/releases/tags/${INSTALL} | jq -r '.body' | grep -E "^-" | while read line; do  echo "$line" | dos2unix | sed 's/([^)]*)//g' | fold -w 70 -s | sed '2,$ s/^/    /' >> "${tempfile}"; done
+        my_curl 5 "https://api.github.com/repos/home-assistant/core/releases/tags/${INSTALL}" | jq -r '.body' | grep -E "^-" | while read line; do  echo "$line" | dos2unix | sed 's/([^)]*)//g' | fold -w 70 -s | sed '2,$ s/^/    /' >> "${tempfile}"; done
         whiptail --scrolltext --title "${INSTALL} Release Notes" --textbox "${tempfile}" $((rows < 30 ? rows : 30)) $((columns < 100 ? columns : 100))
         rm -f "${tempfile}"
 
