@@ -26,3 +26,4 @@ Then run the script:
 ./ha-manager.sh
 ```
 ![Main menu](https://github.com/OToussaint/ha-manager/raw/main/screenshots/ha-manager.png)
+
