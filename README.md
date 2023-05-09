@@ -27,4 +27,3 @@ Then run the script:
 ```
 ![Main menu](https://github.com/OToussaint/ha-manager/raw/main/screenshots/ha-manager.png)
 
-Ceci est un test, j'en ai plein le cul de Github !!!
