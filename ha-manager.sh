@@ -234,7 +234,7 @@ handle_restore() {
 }
 
 handle_cron() {
-    SCRIPT_DIR=$(dirname "$0")
+    SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
     SCRIPT_PATH="$SCRIPT_DIR/backup.sh"
 
     if [ "$1" -eq 5 ]; then
