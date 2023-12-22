@@ -3,5 +3,6 @@
     "CONFIG_DIR": "/home/homeassistant/.homeassistant",
     "BACKUP_ROOT_DIR": "/mnt/backup/Home Assistant",
     "LOG_DIR": "/var/log/homeassistant",
-    "HA_USER": "homeassistant"
+    "HA_USER": "homeassistant",
+    "BACKUP_DIR": "/home/homeassistant/.homeassistant/backups"
 }
