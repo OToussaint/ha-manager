@@ -122,11 +122,13 @@ get_files() {
 
 # Function to show backup/restore menu
 show_backup_menu() {
-    whiptail --title "Home Assistant Backup Manager" --menu "Select an option:" $((rows < 15 ? rows : 15)) $((columns < 60 ? columns : 60)) 4 \
+    whiptail --title "Home Assistant Backup Manager" --menu "Select an option:" $((rows < 17 ? rows : 17)) $((columns < 60 ? columns : 60)) 6 \
     "1" "Backup the venv" \
     "2" "Backup the configuration" \
     "3" "Restore the venv" \
-    "4" "Restore the configuration" 2>&1 > /dev/tty | tee -a "${LOG_DIR}/homeassistant-manager.log"
+    "4" "Restore the configuration" \
+    "5" "Add backup.sh in cron" \
+    "6" "Remove backup.sh from cron" 2>&1 > /dev/tty | tee -a "${LOG_DIR}/homeassistant-manager.log"
 }
 
 # Function to backup a SQLite DB (e.g.: home-assistant_v2.db)
@@ -229,6 +231,28 @@ handle_restore() {
     
     # Display success message
     whiptail --title "Restore backup" --msgbox "File extracted successfully!" $((rows < 10 ? rows : 10)) $((columns < 80 ? columns : 80))
+}
+
+handle_cron() {
+    SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+    SCRIPT_PATH="$SCRIPT_DIR/backup.sh"
+
+    if [ "$1" -eq 5 ]; then
+        # Check if the command already exists in the crontab
+        if crontab -l | grep -q "/bin/bash $SCRIPT_PATH"; then
+            echo "Backup script is already in the crontab" | tee -a "${LOG_DIR}/homeassistant-manager.log"
+        else
+            # Add the script to the crontab
+            CRON_COMMAND="0 1 * * * /bin/bash $SCRIPT_PATH > /dev/null 2>&1"
+            (crontab -l 2>/dev/null; echo "$CRON_COMMAND") | crontab -
+            echo "Backup script added to crontab" | tee -a "${LOG_DIR}/homeassistant-manager.log"
+        fi
+    else
+        # Remove the script from the crontab
+        COMMAND_TO_REMOVE="/bin/bash $SCRIPT_PATH"
+        (crontab -l 2>/dev/null | grep -v "$COMMAND_TO_REMOVE") | crontab -
+        echo "Backup script removed from crontab" | tee -a "${LOG_DIR}/homeassistant-manager.log"
+    fi
 }
 
 handle_previous_releases() {
@@ -378,6 +402,9 @@ while true; do
                         ;;
                     3|4)
                         handle_restore "$sub_choice"
+                        ;;
+                    5|6)
+                        handle_cron "$sub_choice"
                         ;;
                     *)
                         break
